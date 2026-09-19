@@ -1,0 +1,20 @@
+[
+  {
+    "id": 1,
+    "playerName": "abiyah",
+    "score": 222,
+    "difficulty": "easy",
+    "word": "blammo",
+    "result": "won",
+    "playedAt": "2026-09-19T08:47:43.451Z"
+  },
+  {
+    "id": 2,
+    "playerName": "ayesha",
+    "score": 232,
+    "difficulty": "easy",
+    "word": "ribald",
+    "result": "won",
+    "playedAt": "2026-09-19T08:57:55.713Z"
+  }
+]

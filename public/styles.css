@@ -1,0 +1,134 @@
+:root{
+  --paper:#f6f7fb;
+  --grid:#e2e8f4;
+  --ink:#16233a;
+  --ink-soft:#5a6981;
+  --line:#c9d3e6;
+  --hit:#17755a;
+  --miss:#b03a30;
+  --gold:#b9821c;
+  --card:#ffffff;
+  --sans: "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --mono: ui-monospace, "SF Mono", Menlo, Consolas, "Courier New", monospace;
+}
+
+*{box-sizing:border-box}
+html,body{margin:0}
+body{
+  font-family:var(--sans);
+  color:var(--ink);
+  background:
+    linear-gradient(var(--grid) 1px, transparent 1px) 0 0/26px 26px,
+    linear-gradient(90deg, var(--grid) 1px, transparent 1px) 0 0/26px 26px,
+    var(--paper);
+  padding:24px 16px 56px;
+  line-height:1.5;
+}
+
+.topbar{max-width:1040px;margin:0 auto 20px;}
+.topbar h1{font-size:2.1rem;letter-spacing:.01em;margin:0}
+.topbar .sub{margin:2px 0 0;color:var(--ink-soft)}
+
+.layout{
+  max-width:1040px;margin:0 auto;
+  display:grid;gap:20px;
+  grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);
+  align-items:start;
+}
+@media (max-width:860px){ .layout{grid-template-columns:1fr} }
+
+.panel{
+  background:var(--card);
+  border:1px solid var(--line);
+  border-radius:10px;
+  padding:20px;
+}
+
+/* ---------- difficulty ---------- */
+.difficulty{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+.diff{
+  font:inherit;padding:7px 16px;border-radius:999px;cursor:pointer;
+  border:1px solid var(--line);background:#fff;color:var(--ink-soft);
+}
+.diff.is-active{background:var(--ink);border-color:var(--ink);color:#fff}
+
+/* ---------- stage ---------- */
+.stage{display:flex;gap:20px;align-items:center;flex-wrap:wrap}
+#gallows{width:150px;height:auto;flex:none}
+#gallows line,#gallows circle{
+  stroke:var(--ink);stroke-width:5;stroke-linecap:round;fill:none;
+}
+#gallows .body *{opacity:0;transition:opacity .18s ease}
+#gallows .body .show{opacity:1;stroke:var(--miss)}
+
+.readout{display:grid;gap:10px;margin:0;flex:1 1 200px}
+.readout div{display:flex;justify-content:space-between;border-bottom:1px dashed var(--line);padding-bottom:6px}
+.readout dt{color:var(--ink-soft);margin:0}
+.readout dd{margin:0;font-weight:600;font-variant-numeric:tabular-nums}
+
+/* ---------- word ---------- */
+.word{
+  font-family:var(--mono);
+  font-size:clamp(1.6rem,5.4vw,2.6rem);
+  letter-spacing:.34em;
+  word-break:break-all;
+  margin:22px 0 6px;
+}
+.guessed{margin:0 0 14px;color:var(--ink-soft);font-size:.92rem}
+#guessed{font-family:var(--mono)}
+
+/* ---------- keyboard ---------- */
+.keyboard{display:grid;grid-template-columns:repeat(9,1fr);gap:6px}
+@media (max-width:420px){ .keyboard{grid-template-columns:repeat(7,1fr)} }
+.key{
+  font:600 1rem/1 var(--mono);
+  padding:11px 0;border-radius:6px;cursor:pointer;
+  border:1px solid var(--line);background:#fff;color:var(--ink);
+}
+.key:hover:not(:disabled){background:#eef2fa}
+.key:disabled{cursor:not-allowed;opacity:.85}
+.key.hit{background:var(--hit);border-color:var(--hit);color:#fff}
+.key.miss{background:#fff;color:var(--miss);border-color:var(--miss);text-decoration:line-through}
+.key:focus-visible,.btn:focus-visible,.diff:focus-visible,input:focus-visible{
+  outline:3px solid #3b6fd4;outline-offset:2px;
+}
+
+/* ---------- messages & buttons ---------- */
+.message{margin:16px 0 0;min-height:1.5em;font-weight:600}
+.message.win{color:var(--hit)}
+.message.lose{color:var(--miss)}
+.actions{margin-top:14px}
+.btn{font:inherit;padding:9px 18px;border-radius:8px;cursor:pointer;border:1px solid var(--line);background:#fff}
+.btn.primary{background:var(--ink);border-color:var(--ink);color:#fff}
+.btn.ghost{color:var(--ink-soft)}
+
+/* ---------- save score ---------- */
+.savebox{margin-top:18px;padding:16px;border:1px solid var(--line);border-radius:8px;background:#fbfcff}
+.savebox label{display:block;font-size:.9rem;color:var(--ink-soft);margin-bottom:6px}
+.saverow{display:flex;gap:8px;flex-wrap:wrap}
+.saverow input{flex:1 1 180px;font:inherit;padding:9px 12px;border:1px solid var(--line);border-radius:8px}
+.savemsg{margin:8px 0 0;font-size:.9rem;color:var(--miss)}
+.savemsg.ok{color:var(--hit)}
+
+/* ---------- leaderboard ---------- */
+.boardhead{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.boardhead h2{margin:0;font-size:1.3rem}
+.ranks{list-style:none;margin:0;padding:0;max-height:560px;overflow:auto}
+.ranks li{display:grid;grid-template-columns:34px 1fr auto;gap:10px;align-items:center;
+  padding:8px 4px;border-bottom:1px solid var(--grid)}
+.ranks .rank{color:var(--ink-soft);font-variant-numeric:tabular-nums}
+.ranks .name{font-size:.98rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ranks .pts{font-weight:700;font-variant-numeric:tabular-nums}
+.ranks .meta{grid-column:2/4;font-size:.78rem;color:var(--ink-soft);margin-top:-4px}
+.ranks .empty{display:block;color:var(--ink-soft);border:0}
+
+/* top three: badge + noticeably larger name */
+.ranks li.top .name{font-size:1.5rem;font-weight:700}
+.ranks li.top .rank{font-size:1.25rem}
+.badge{display:inline-block;margin-right:8px;padding:2px 9px;border-radius:999px;
+  font-size:.75rem;font-weight:700;color:#fff;vertical-align:middle}
+.badge.g1{background:var(--gold)}
+.badge.g2{background:#7b8794}
+.badge.g3{background:#a4642c}
+
+.note{margin:12px 0 0;font-size:.82rem;color:var(--ink-soft)}

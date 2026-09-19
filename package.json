@@ -1,0 +1,12 @@
+{
+  "name": "ef101-p01-hangman",
+  "version": "1.0.0",
+  "description": "EF101-P01 web-based Hangman game with persistent leaderboard",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node test.js"
+  },
+  "engines": { "node": ">=18" },
+  "dependencies": {}
+}
