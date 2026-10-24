@@ -22,7 +22,9 @@
       <button class="diff is-active" data-difficulty="easy">Easy</button>
       <button class="diff" data-difficulty="medium">Medium</button>
       <button class="diff" data-difficulty="hard">Hard</button>
+      <button id="daily" class="diff daily" title="Same word for everyone today, x1.25 score">Daily challenge</button>
     </div>
+    <p id="modeTag" class="modetag" hidden></p>
 
     <div class="stage">
       <svg id="gallows" viewBox="0 0 160 190" aria-hidden="true">
@@ -59,7 +61,16 @@
 
     <div class="actions">
       <button id="newGame" class="btn primary">New game</button>
+      <button id="hint" class="btn">Hint (-25 pts)</button>
     </div>
+
+    <details class="rules">
+      <summary>How scoring and difficulty work</summary>
+      <p><b>Difficulty rule.</b> Each word is tagged from its length, its number of distinct letters and rare letters (J Q X Z K V W Y). Longer words with more distinct and rarer letters are Hard. Attempts: Easy 8, Medium 6, Hard 5.</p>
+      <p><b>Score (win).</b> (100 + 10 &times; distinct letters + 12 &times; attempts left) &times; multiplier (Easy 1, Medium 1.5, Hard 2). <b>Score (loss).</b> 5 &times; correct letters &times; multiplier.</p>
+      <p><b>Hint.</b> One per game. Reveals a hidden letter, costs 25 points on a win, never costs an attempt. <b>Daily challenge.</b> Everyone gets the same word today and a x1.25 bonus.</p>
+      <p><b>Security.</b> The answer stays on the server until the game ends, so it can not be found in the page source or network traffic.</p>
+    </details>
 
     <!-- score saving form, shown when a game ends -->
     <div id="saveBox" class="savebox" hidden>

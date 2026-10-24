@@ -53,14 +53,19 @@ If port 3000 is busy: `PORT=4000 node server.js` (macOS/Linux) or
 ## 2. Check that it works
 
 ### a) Automated tests — one command
-Leave the server running in the first terminal. Open a **second** terminal:
+The test script needs the test-only answer endpoint, which is OFF by default. Start the server like this:
+
+Windows CMD: `set ALLOW_TEST_PEEK=1 && node server.js`
+macOS/Linux: `ALLOW_TEST_PEEK=1 node server.js`
+
+Leave it running and open a **second** terminal:
 
 ```
 cd path/to/hangman
 node test.js
 ```
 
-Expected final line: `20 passed, 0 failed`. This script covers correct single letter,
+Expected final line: `25 passed, 0 failed`. This script covers correct single letter,
 repeated letter, wrong letter, duplicate guess, complete win, complete loss, all three
 difficulties, leaderboard insertion, equal scores and a blank player name.
 
@@ -162,8 +167,14 @@ and difficulty (multiplier), and still gives partial credit for a good attempt t
 
 ---
 
-## 5. Before you submit
+## 5. Bonus features (added after the mandatory work)
 
-`server.js` contains a test-only endpoint, `GET /api/test/peek`, which reveals the answer so
-`test.js` can play full games automatically. **Delete that block** (it is clearly commented) before
-the live demo, or a marker could use it to argue the answer is reachable from the browser.
+| Feature | How it works |
+|---|---|
+| Secure server-side session | The answer never leaves the server until the game ends. The test endpoint `/api/test/peek` is disabled unless the server is started with `ALLOW_TEST_PEEK=1`, so it is off in the hosted demo. |
+| Hint | One per game. Reveals a hidden letter, costs 25 points on a win, never costs an attempt. |
+| Daily challenge | Same word for every player on a given UTC date (chosen from a hash of the date), score x1.25, tagged "daily" on the leaderboard. |
+| Responsive layout | Two columns on desktop, one column on phones. |
+| Online deployment | Hosted on Bonto from the GitHub repo. |
+
+Win score with the hint: `max(10, round((100 + 10*distinct + 12*attemptsLeft) * multiplier) - 25*hintsUsed)`.

@@ -108,6 +108,39 @@ const peek = async id => (await api(`/api/test/peek?gameId=${id}`)).body.word;
   check("Equal scores both listed with distinct ranks",
         new Set(tie.map(x => x.rank)).size === tie.length);
 
+  /* 13. hint: reveals a letter, costs no attempt, only one per game */
+  g = (await api("/api/game/new", "POST", { difficulty: "hard" })).body;
+  word = await peek(g.gameId);
+  const h1 = await api("/api/game/hint", "POST", { gameId: g.gameId });
+  check("Hint reveals a letter without costing an attempt",
+        h1.status === 200 && h1.body.attemptsLeft === g.attemptsLeft && word.includes(h1.body.hintLetter) && h1.body.hintsUsed === 1);
+  const h2 = await api("/api/game/hint", "POST", { gameId: g.gameId });
+  check("Second hint in the same game is refused", h2.status === 400);
+
+  /* 14. a win with a hint scores less than the same word without one */
+  const g1 = (await api("/api/game/new", "POST", { difficulty: "easy" })).body;
+  const w1 = await peek(g1.gameId);
+  let r1 = g1; for (const l of new Set(w1)) r1 = (await api("/api/game/guess", "POST", { gameId: g1.gameId, letter: l })).body;
+  const g2 = (await api("/api/game/new", "POST", { difficulty: "easy" })).body;
+  const w2 = await peek(g2.gameId);
+  if (new Set(w2).size > 2) {
+    await api("/api/game/hint", "POST", { gameId: g2.gameId });
+    let r2 = g2; for (const l of new Set(w2)) r2 = (await api("/api/game/guess", "POST", { gameId: g2.gameId, letter: l })).body;
+    const expected = Math.max(10, (100 + 10 * new Set(w2).size + 12 * r2.attemptsLeft) - 25);
+    check("Win with a hint is charged the hint penalty", r2.status === "won" && r2.score === expected, `(${r2.score} vs ${expected})`);
+  }
+
+  /* 15. daily challenge: same word for everyone, bonus applied, flagged as daily */
+  const d1 = (await api("/api/game/new", "POST", { mode: "daily" })).body;
+  const d2 = (await api("/api/game/new", "POST", { mode: "daily" })).body;
+  check("Daily challenge gives the same word to every player",
+        (await peek(d1.gameId)) === (await peek(d2.gameId)) && d1.mode === "daily");
+  const dw = await peek(d1.gameId);
+  let dr = d1; for (const l of new Set(dw)) dr = (await api("/api/game/guess", "POST", { gameId: d1.gameId, letter: l })).body;
+  const dm = { easy: 1, medium: 1.5, hard: 2 }[d1.difficulty] * 1.25;
+  check("Daily win applies the x1.25 bonus",
+        dr.score === Math.round((100 + 10 * new Set(dw).size + 12 * dr.attemptsLeft) * dm), `(${dr.score})`);
+
   /* 12. saving the same game twice is refused */
   const again = await api("/api/scores", "POST", { gameId: win.gameId, playerName: "TestWinner" });
   check("Same game cannot be saved twice", again.status === 400);

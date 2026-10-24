@@ -8,6 +8,7 @@ const LETTERS = "abcdefghijklmnopqrstuvwxyz".split("");
 let state = null;                  // last state received from the server
 let difficulty = "easy";
 let busy = false;
+let mode = "normal";             // "normal" or "daily"
 
 /* ---------- API helpers ---------- */
 async function api(path, method = "GET", body) {
@@ -68,6 +69,13 @@ function render(msg, cls) {
     $("message").className = "message" + (cls ? " " + cls : "");
   }
 
+  // hint button and mode tag
+  $("hint").disabled = !(state.status === "playing" && state.hintsUsed < state.hintsMax);
+  $("hint").textContent = state.hintsUsed >= state.hintsMax ? "Hint used" : "Hint (-25 pts)";
+  const tag = $("modeTag");
+  tag.hidden = state.mode !== "daily";
+  if (state.mode === "daily") tag.textContent = `Daily challenge: same word for everyone today (${state.difficulty}, x1.25 score)`;
+
   // save box appears only when a game has ended and is not yet saved
   $("saveBox").hidden = !(state.status !== "playing" && !state.saved);
 }
@@ -75,7 +83,7 @@ function render(msg, cls) {
 /* ---------- actions ---------- */
 async function newGame() {
   try {
-    state = await api("/api/game/new", "POST", { difficulty });
+    state = await api("/api/game/new", "POST", { difficulty, mode });
     $("saveMsg").textContent = "";
     $("saveMsg").className = "savemsg";
     render("Good luck. Click a letter or use your keyboard.");
@@ -108,6 +116,17 @@ async function guess(letter) {
   } finally { busy = false; }
 }
 
+async function hint() {
+  if (busy || !state || state.status !== "playing") return;
+  busy = true;
+  try {
+    state = await api("/api/game/hint", "POST", { gameId: state.gameId });
+    render(`Hint: ${state.hintLetter.toUpperCase()} is in the word.`);
+    $("word").classList.remove("pop"); void $("word").offsetWidth; $("word").classList.add("pop");
+  } catch (e) { $("message").textContent = e.message; }
+  finally { busy = false; }
+}
+
 async function saveScore() {
   const name = $("playerName").value.trim();
   const box = $("saveMsg");
@@ -138,7 +157,7 @@ async function loadBoard() {
         `<span class="rank">${r.rank}</span>` +
         `<span class="name">${badge}${escapeHTML(r.playerName)}</span>` +
         `<span class="pts">${r.score}</span>` +
-        `<span class="meta">${r.difficulty} · ${r.result} · ${when}</span>`;
+        `<span class="meta">${r.difficulty}${r.mode === "daily" ? " (daily)" : ""} · ${r.result} · ${when}</span>`;
       list.appendChild(li);
     }
   } catch { list.innerHTML = '<li class="empty">Leaderboard unavailable. Is the server running?</li>'; }
@@ -149,12 +168,20 @@ function escapeHTML(s) {
 }
 
 /* ---------- wiring ---------- */
-document.querySelectorAll(".diff").forEach(b => b.addEventListener("click", () => {
+document.querySelectorAll(".diff[data-difficulty]").forEach(b => b.addEventListener("click", () => {
   document.querySelectorAll(".diff").forEach(x => x.classList.remove("is-active"));
   b.classList.add("is-active");
   difficulty = b.dataset.difficulty;
+  mode = "normal";
   newGame();
 }));
+$("daily").addEventListener("click", () => {
+  document.querySelectorAll(".diff").forEach(x => x.classList.remove("is-active"));
+  $("daily").classList.add("is-active");
+  mode = "daily";
+  newGame();
+});
+$("hint").addEventListener("click", hint);
 $("newGame").addEventListener("click", newGame);
 $("saveScore").addEventListener("click", saveScore);
 $("refresh").addEventListener("click", loadBoard);

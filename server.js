@@ -60,12 +60,18 @@ const MULTIPLIER   = { easy: 1, medium: 1.5, hard: 2 };
      LOSS score = round( (5 * correctGuesses) * multiplier )
    It rewards success (flat 100 win bonus), harder/longer words (distinct
    letters), efficient play (remaining attempts) and difficulty (multiplier). */
+const HINT_PENALTY = 25;      // points lost for using the hint (win only)
+const MAX_HINTS    = 1;       // one hint per game
+const DAILY_BONUS  = 1.25;    // daily challenge multiplier
+
 function computeScore(game, won) {
-  const m = MULTIPLIER[game.difficulty];
+  const m = MULTIPLIER[game.difficulty] * (game.mode === "daily" ? DAILY_BONUS : 1);
   const distinct = new Set(game.word).size;
   const correct  = game.guessed.filter(l => game.word.includes(l)).length;
   const raw = won ? 100 + 10 * distinct + 12 * game.attemptsLeft : 5 * correct;
-  return Math.round(raw * m);
+  let score = Math.round(raw * m);
+  if (won) score = Math.max(10, score - HINT_PENALTY * game.hintsUsed);
+  return score;
 }
 
 /* In-memory game sessions. The answer NEVER leaves the server until the
@@ -81,7 +87,8 @@ function maskedWord(game) {
 function previewScore(game) {
   if (game.status !== "playing") return game.score;
   const revealed = game.guessed.filter(l => game.word.includes(l)).length;
-  return Math.round((100 + 10 * revealed + 12 * game.attemptsLeft) * MULTIPLIER[game.difficulty]);
+  const m = MULTIPLIER[game.difficulty] * (game.mode === "daily" ? DAILY_BONUS : 1);
+  return Math.max(10, Math.round((100 + 10 * revealed + 12 * game.attemptsLeft) * m) - HINT_PENALTY * game.hintsUsed);
 }
 
 function publicState(game, extra = {}) {
@@ -97,21 +104,36 @@ function publicState(game, extra = {}) {
     maxAttempts: game.maxAttempts,
     status:      game.status,               // playing | won | lost
     score:       game.score,
-    saved:       game.saved
+    saved:       game.saved,
+    mode:        game.mode,
+    hintsUsed:   game.hintsUsed,
+    hintsMax:    MAX_HINTS
   };
   if (game.status !== "playing") state.word = game.word;   // reveal only at the end
   return Object.assign(state, extra);
 }
 
-function newGame(difficulty) {
+/* Daily challenge: everyone gets the same word on the same (UTC) date.
+   The index comes from a hash of the date, so no extra storage is needed. */
+function dailyEntry() {
+  const all = [...WORDS.easy, ...WORDS.medium, ...WORDS.hard].sort((a, b) => a.id - b.id);
+  const day = new Date().toISOString().slice(0, 10);
+  const n = parseInt(crypto.createHash("sha256").update("ef101-" + day).digest("hex").slice(0, 8), 16);
+  return all[n % all.length];
+}
+
+function newGame(difficulty, mode = "normal") {
   if (!WORDS[difficulty]) difficulty = "easy";
-  const pool  = WORDS[difficulty];
-  const entry = pool[crypto.randomInt(pool.length)];        // random selection
+  let entry;
+  if (mode === "daily") { entry = dailyEntry(); difficulty = entry.difficulty; }
+  else { const pool = WORDS[difficulty]; entry = pool[crypto.randomInt(pool.length)]; }   // random selection
   const game = {
     id: crypto.randomUUID(),
     wordId: entry.id,
     word: entry.word,
     difficulty,
+    mode,
+    hintsUsed: 0,
     guessed: [],
     maxAttempts: MAX_ATTEMPTS[difficulty],
     attemptsLeft: MAX_ATTEMPTS[difficulty],
@@ -141,6 +163,19 @@ function applyGuess(game, letter) {
   if (solved)                 { game.status = "won";  game.score = computeScore(game, true);  }
   else if (game.attemptsLeft <= 0) { game.status = "lost"; game.score = computeScore(game, false); }
   return {};
+}
+
+/* Hint: reveals one letter that is still hidden. Costs HINT_PENALTY points
+   on a win, never costs an attempt, and is limited to MAX_HINTS per game. */
+function applyHint(game) {
+  if (game.status !== "playing")       return { error: "Game already finished." };
+  if (game.hintsUsed >= MAX_HINTS)     return { error: "No hints left in this game." };
+  const hidden = [...new Set(game.word)].filter(c => !game.guessed.includes(c));
+  if (hidden.length <= 1)              return { error: "Too close to the end for a hint." };
+  const letter = hidden[crypto.randomInt(hidden.length)];
+  game.hintsUsed++;
+  game.guessed.push(letter);
+  return { hintLetter: letter };
 }
 
 /* ------------------------------------------------------------------
@@ -182,8 +217,9 @@ const server = http.createServer(async (req, res) => {
   try {
     /* ---- API: start a new game ---- */
     if (req.method === "POST" && p === "/api/game/new") {
-      const { difficulty = "easy" } = await readBody(req);
-      return sendJSON(res, 200, publicState(newGame(String(difficulty).toLowerCase())));
+      const { difficulty = "easy", mode = "normal" } = await readBody(req);
+      const m = mode === "daily" ? "daily" : "normal";
+      return sendJSON(res, 200, publicState(newGame(String(difficulty).toLowerCase(), m)));
     }
 
     /* ---- API: guess a letter ---- */
@@ -194,6 +230,16 @@ const server = http.createServer(async (req, res) => {
       const r = applyGuess(game, String(letter || "").toLowerCase());
       if (r.error) return sendJSON(res, 400, { error: r.error });
       return sendJSON(res, 200, publicState(game, { duplicate: !!r.duplicate }));
+    }
+
+    /* ---- API: use the hint ---- */
+    if (req.method === "POST" && p === "/api/game/hint") {
+      const { gameId } = await readBody(req);
+      const game = games.get(gameId);
+      if (!game) return sendJSON(res, 404, { error: "Game not found. Start a new game." });
+      const r = applyHint(game);
+      if (r.error) return sendJSON(res, 400, { error: r.error });
+      return sendJSON(res, 200, publicState(game, { hintLetter: r.hintLetter }));
     }
 
     /* ---- API: save a finished game's score ---- */
@@ -210,7 +256,8 @@ const server = http.createServer(async (req, res) => {
       scores.push({
         id: scores.length ? scores[scores.length - 1].id + 1 : 1,
         playerName: name, score: game.score, difficulty: game.difficulty,
-        word: game.word, result: game.status,
+        word: game.word, result: game.status, mode: game.mode,
+        hintsUsed: game.hintsUsed,
         playedAt: new Date().toISOString()
       });
       writeScores(scores);
@@ -234,13 +281,14 @@ const server = http.createServer(async (req, res) => {
         totalWords: WORDS.easy.length + WORDS.medium.length + WORDS.hard.length,
         easy: WORDS.easy.length, medium: WORDS.medium.length, hard: WORDS.hard.length,
         maxAttempts: MAX_ATTEMPTS, multipliers: MULTIPLIER,
-        savedScores: readScores().length
+        savedScores: readScores().length, hintPenalty: HINT_PENALTY, dailyBonus: DAILY_BONUS
       });
     }
 
-    /* ---- TEST-ONLY endpoint: reveals the answer so automated tests can
-            play a full game. Delete this block before the demo if you want. */
-    if (req.method === "GET" && p === "/api/test/peek") {
+    /* ---- TEST-ONLY endpoint: DISABLED unless the server is started with
+            ALLOW_TEST_PEEK=1. It is never on in the hosted demo, so the answer
+            can not be read from the browser or the network. ---- */
+    if (process.env.ALLOW_TEST_PEEK === "1" && req.method === "GET" && p === "/api/test/peek") {
       const game = games.get(url.searchParams.get("gameId"));
       if (!game) return sendJSON(res, 404, { error: "Game not found." });
       return sendJSON(res, 200, { word: game.word });
