@@ -194,5 +194,7 @@ document.addEventListener("keydown",e=>{
   if($("dlg").open||e.ctrlKey||e.metaKey||e.altKey)return;
   const k=e.key.toUpperCase();
   if(/^[A-Z]$/.test(k))guess(k);
-});
-(async()=
+});loadWords().then(function(w){pool=w;buildKeys();drawLB();start();});
+</script>
+</body>
+</html>
