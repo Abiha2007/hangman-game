@@ -160,7 +160,7 @@ function guess(k){
   }
   render();
 }
-function getLB(){try{return JSON.parse(localStorage.getItem(KEY))||[]}catch(e){return[]}}
+function getLB(){try{return JSON.parse(localStorage.getItem(KEY))||[]}catch(e){return[]}}function getLB(){try{return JSON.parse(localStorage.getItem(KEY))||[]}catch(e){return[]}}
 function setLB(a){try{localStorage.setItem(KEY,JSON.stringify(a))}catch(e){}}
 function esc(s){return s.replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]))}
 function drawLB(){
@@ -176,3 +176,23 @@ $("form").addEventListener("submit",()=>{
   const a=getLB();
   a.push({name:$("name").value.trim()||"Player",score,level,date:new Date().toLocaleDateString()});
   a.sort((x,y)=>y.score-x.score);setLB(a.slice(0,50));
+  score=0;$("name").value="";drawLB();render();
+});
+$("skip").onclick=()=>{$("dlg").close();score=0;render();};
+$("new").onclick=start;
+$("reset").onclick=()=>{score=0;streak=0;start();};
+$("refresh").onclick=drawLB;
+$("hint").onclick=()=>{if(over||hinted)return;const r=[...word].filter(c=>!guessed.has(c));if(!r.length)return;hinted=true;score=Math.max(0,score-15);guess(r[Math.floor(Math.random()*r.length)]);};
+$("snd").onclick=()=>{sound=!sound;$("snd").textContent=sound?"Sound on":"Sound off";};
+$("levels").onclick=e=>{
+  const b=e.target.closest("button");if(!b)return;
+  level=b.dataset.l;score=0;streak=0;
+  document.querySelectorAll("#levels button").forEach(x=>x.classList.toggle("on",x===b));
+  start();
+};
+document.addEventListener("keydown",e=>{
+  if($("dlg").open||e.ctrlKey||e.metaKey||e.altKey)return;
+  const k=e.key.toUpperCase();
+  if(/^[A-Z]$/.test(k))guess(k);
+});
+(async()=
