@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hangman — EF101-P01</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<header class="topbar">
+  <h1>Hangman</h1>
+  <p class="sub">Guess the hidden word one letter at a time.</p>
+</header>
+
+<main class="layout">
+
+  <!-- ================= GAME ================= -->
+  <section class="panel game" aria-label="Game">
+
+    <div class="difficulty" role="group" aria-label="Difficulty">
+      <button class="diff is-active" data-difficulty="easy">Easy</button>
+      <button class="diff" data-difficulty="medium">Medium</button>
+      <button class="diff" data-difficulty="hard">Hard</button>
+    </div>
+
+    <div class="stage">
+      <svg id="gallows" viewBox="0 0 160 190" aria-hidden="true">
+        <g class="frame">
+          <line x1="15" y1="180" x2="105" y2="180"/>
+          <line x1="45" y1="180" x2="45" y2="15"/>
+          <line x1="45" y1="15"  x2="115" y2="15"/>
+          <line x1="115" y1="15" x2="115" y2="35"/>
+        </g>
+        <g class="body">
+          <circle id="p1" cx="115" cy="50" r="15"/>
+          <line   id="p2" x1="115" y1="65"  x2="115" y2="115"/>
+          <line   id="p3" x1="115" y1="78"  x2="92"  y2="100"/>
+          <line   id="p4" x1="115" y1="78"  x2="138" y2="100"/>
+          <line   id="p5" x1="115" y1="115" x2="97"  y2="150"/>
+          <line   id="p6" x1="115" y1="115" x2="133" y2="150"/>
+        </g>
+      </svg>
+
+      <dl class="readout">
+        <div><dt>Attempts left</dt><dd id="attempts">—</dd></div>
+        <div><dt>Current score</dt><dd id="score">0</dd></div>
+        <div><dt>Word length</dt><dd id="length">—</dd></div>
+      </dl>
+    </div>
+
+    <p id="word" class="word">_ _ _ _ _</p>
+
+    <p class="guessed">Guessed: <span id="guessed">nothing yet</span></p>
+
+    <div id="keyboard" class="keyboard" role="group" aria-label="Letters"></div>
+
+    <p id="message" class="message" role="status" aria-live="polite">Pick a difficulty and start guessing.</p>
+
+    <div class="actions">
+      <button id="newGame" class="btn primary">New game</button>
+    </div>
+
+    <!-- score saving form, shown when a game ends -->
+    <div id="saveBox" class="savebox" hidden>
+      <label for="playerName">Your name for the leaderboard</label>
+      <div class="saverow">
+        <input id="playerName" maxlength="20" placeholder="e.g. Ayesha" autocomplete="off">
+        <button id="saveScore" class="btn primary">Save score</button>
+      </div>
+      <p id="saveMsg" class="savemsg"></p>
+    </div>
+  </section>
+
+  <!-- ================= LEADERBOARD ================= -->
+  <section class="panel board" aria-label="Leaderboard">
+    <div class="boardhead">
+      <h2>Leaderboard</h2>
+      <button id="refresh" class="btn ghost">Refresh</button>
+    </div>
+    <ol id="leaderboard" class="ranks"><li class="empty">Loading…</li></ol>
+    <p class="note">Top 50 scores. Saved on the server, so they stay after you close the browser.</p>
+  </section>
+
+</main>
+
+<script src="app.js"></script>
+</body>
+</html>
